@@ -32,7 +32,7 @@ function get_jira_info(board_name, on_update) {
     jira_call("https://confluence.dolby.net/kb/rest/jiraanywhere/1.0/servers", function(msg) {
         AJS.$.each(msg, function(key, val) {
             if (val.name && val.name.indexOf('Dolby Issue System') > -1) {
-                var jira_url = "https://confluence.dolby.net/kb/plugins/servlet/applinks/proxy?appId=" + val.id + "&path=" + val.url;
+                var jira_url = "https://confluence.dolby.net/kb/plugins/servlet/applinks/proxy?appId=" + val.id + "&path=" + val.url + "&maxResults=1000";
 
                 jira_call(jira_url + "/rest/agile/1.0/board", function(msg) {
                     for (var i = 0; i < msg.values.length; i++) {
