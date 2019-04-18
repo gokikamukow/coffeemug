@@ -26,15 +26,15 @@ function jira_call(url, on_success) {
 }
 
 
-function get_jira_info(board_name, on_update) {
+function get_jira_info(startAt, board_name, on_update) {
     var jira = {};
 
     jira_call("https://confluence.dolby.net/kb/rest/jiraanywhere/1.0/servers", function(msg) {
         AJS.$.each(msg, function(key, val) {
             if (val.name && val.name.indexOf('Dolby Issue System') > -1) {
-                var jira_url = "https://confluence.dolby.net/kb/plugins/servlet/applinks/proxy?appId=" + val.id + "&path=" + val.url + "&maxResults=1000";
+                var jira_url = "https://confluence.dolby.net/kb/plugins/servlet/applinks/proxy?appId=" + val.id + "&path=" + val.url;
 
-                jira_call(jira_url + "/rest/agile/1.0/board", function(msg) {
+                jira_call(jira_url + "/rest/agile/1.0/board?startAt=" + startAt, function(msg) {
                     for (var i = 0; i < msg.values.length; i++) {
                         if (msg.values[i].name === board_name) {
                             jira.board = msg.values[i];
