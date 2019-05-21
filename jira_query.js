@@ -31,8 +31,6 @@ function jira_get_all(query_url, fieldname, on_update) {
     var messages = [];
     var n_issued = -1;
     var max_results = 50;
-
-    console.log("Getting all JIRA results for url " + url + " ...")
     
     jira_call(query_url + "&maxResults=0", function(msg) {
         var nvals = msg.total;
@@ -56,7 +54,7 @@ function jira_get_all(query_url, fieldname, on_update) {
                 console.log([has_gaps, messages[messages.length - 1].startAt + messages[messages.length - 1][fieldname].length, nvals]);
                 if ((messages[messages.length - 1].startAt + messages[messages.length - 1].issues.length >= nvals) && !updated && !has_gaps) {
                     updated = true;
-                    console.log('got all ' + nvals ' results, last total was ' + messages[messages.length - 1].total);
+                    console.log("got all " + nvals + " results, last total was " + messages[messages.length - 1].total);
                     var results = [];
                     for (var i = 1; i < messages.length; i++) {
                         results = results.concat(messages[i][fieldname])
