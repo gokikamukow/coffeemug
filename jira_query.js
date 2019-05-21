@@ -85,9 +85,12 @@ function get_jira_info(startAt, board_name, on_update) {
                         }
                     }
 
+                    console.log("Board ID is " + jira.board);
+
                     var query_url = jira_url + "/rest/agile/1.0/board/" + jira.board.id + "/backlog?jql=issuetype!%3DSub-task&fields=summary,customfield_10262,epic,fixVersions"
                     jira_get_all(query_url, "issues", function (issues) {
                         jira.issues = issues;
+                        console.log(jira);
                         on_update(jira);
                     });
                 });
