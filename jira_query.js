@@ -53,7 +53,7 @@ function jira_get_all(query_url, fieldname, on_update) {
                     updated = true;
                     console.log("got all " + nvals + " results, last total was " + messages[messages.length - 1].total);
                     var results = [];
-                    for (var i = 1; i < messages.length; i++) {
+                    for (var i = 0; i < messages.length; i++) {
                         results = results.concat(messages[i][fieldname])
                     }
                     on_update(messages, results);
