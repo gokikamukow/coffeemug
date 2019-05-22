@@ -49,7 +49,7 @@ function jira_get_all(query_url, fieldname, on_update) {
                         has_gaps = true;
                     }
                 }
-                if ((messages[messages.length - 1].startAt + messages[messages.length - 1].issues.length >= nvals) && !updated && !has_gaps) {
+                if ((messages[0].startAt == 0 && messages[messages.length - 1].startAt + messages[messages.length - 1].issues.length >= nvals) && !updated && !has_gaps) {
                     updated = true;
                     console.log("got all " + nvals + " results, last total was " + messages[messages.length - 1].total);
                     var results = [];
