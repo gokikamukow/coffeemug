@@ -56,7 +56,7 @@ function jira_get_all(query_url, fieldname, on_update) {
                     for (var i = 1; i < messages.length; i++) {
                         results = results.concat(messages[i][fieldname])
                     }
-                    on_update(results);
+                    on_update(messages, results);
                 }
             });
         };
@@ -88,8 +88,9 @@ function get_jira_info(startAt, board_name, on_update) {
                     console.log("Board ID is " + jira.board);
 
                     var query_url = jira_url + "/rest/agile/1.0/board/" + jira.board.id + "/backlog?jql=issuetype!%3DSub-task&fields=summary,customfield_10262,epic,fixVersions"
-                    jira_get_all(query_url, "issues", function (issues) {
+                    jira_get_all(query_url, "issues", function (messages, issues) {
                         jira.issues = issues;
+                        jira.messages = messages;
                         console.log(jira);
                         on_update(jira);
                     });
