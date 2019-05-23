@@ -125,7 +125,12 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
         .orient("left")
         .ticks(d3.time.thursdays, 2)
         .tickFormat(d3.time.format("%b %d"));
-
+    
+    // Clear all plot elements
+    var elements = document.getElementsByClassName('d3-tip');
+    while(elements.length > 0){
+        elements[0].parentNode.removeChild(elements[0]);
+    }
     document.getElementById(target).innerHTML = "";
 
     var svg = d3.select("#" + target).append("svg")
