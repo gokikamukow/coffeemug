@@ -293,5 +293,48 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
             })
             .attr("height", boxheight)
             .attr("width", epicbarwidth - box_marginh - 4);
+
+
+        var legendlayers = svg.append("g")
+            .selectAll("g")
+            .data(versions)
+            .enter();
+
+        var legend_spacing = 150;
+        legendlayers.append("rect")
+            .attr("class", "legendboxes")
+            .attr("x", function(d) {
+                return versions.indexOf(d) * legend_spacing;
+            })
+            .attr("y", function(d) {
+                return -15;
+            })
+            .attr("height", function(d) {
+                return 10
+            })
+            .attr("width", 10)
+            .style("stroke", '#000')
+            .style("fill", function(d, i) {
+                return colors_google(versions.indexOf(d));
+            });
+
+        legendlayers.append("text")
+            .attr("class", "legendtext")
+            .attr("x", function(d) {
+                return versions.indexOf(d) * legend_spacing + 15;
+            })
+            .attr("y", function(d) {
+                return -5;
+            })
+            .text(function(d) {
+                if (d)
+                {
+                    return d;
+                }
+                else
+                {
+                    return "None"
+                }
+            });
     }
 }
