@@ -93,13 +93,12 @@ function get_jira_info(startAt, board_name, jql, restrict_fields, on_update) {
                     var query_url = jira_url + "/rest/agile/1.0/board/" + jira.board.id + "/backlog"
                     if (jql != undefined)
                     {
-                        "issuetype=Sub-task"
                         query_url = query_url + prefix + "jql=" + encodeURIComponent(jql);
                         prefix = "&";
                     }
                     if (restrict_fields != undefined)
                     {
-                        "summary,customfield_10262,epic,fixVersions"
+                        
                         query_url = query_url + prefix + "fields=" + restrict_fields.join(",");
                         prefix = "&";
                     }
