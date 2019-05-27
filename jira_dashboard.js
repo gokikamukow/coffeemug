@@ -106,9 +106,9 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
             right: 450,
             bottom: 30,
             left: 50
-        },
-        width = 1200 - margin.left - margin.right,
-        height = 2000 - margin.top - margin.bottom;
+        };
+    width = 1200 - margin.left - margin.right;
+    height = 2000 - margin.top - margin.bottom;
 
     var endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + 7 * 26)

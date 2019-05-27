@@ -5,6 +5,8 @@
     color: #000;
     border-radius: 2px;
     font-size: 12px;
+    rx: 2;
+    ry: 2;
 }
 
 /* Creates a small triangle extender for the tooltip */
@@ -83,6 +85,7 @@ text {
 }
 
 .legendboxes {
-   rx: 2;
-   ry: 2;
+    fill-opacity: 0.5;
+    rx: 2;
+    ry: 2;
 }

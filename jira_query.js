@@ -72,10 +72,12 @@ function get_jira_info(startAt, board_name, on_update) {
     var jira = {};
     jira.board_name = board_name;
 
-    jira_call("https://confluence.dolby.net/kb/rest/jiraanywhere/1.0/servers", function(msg) {
+    base_url = window.location.href.toString().split('/').slice(0, 4).join('/')
+
+    jira_call(base_url + "/rest/jiraanywhere/1.0/servers", function(msg) {
         AJS.$.each(msg, function(key, val) {
             if (val.name && val.name.indexOf('Issue System') > -1) {
-                var jira_url = "https://confluence.dolby.net/kb/plugins/servlet/applinks/proxy?appId=" + val.id + "&path=" + val.url;
+                var jira_url = base_url + "/plugins/servlet/applinks/proxy?appId=" + val.id + "&path=" + val.url;
 
                 jira_call(jira_url + "/rest/greenhopper/1.0/rapidviews/viewsData", function(msg) {
                     for (var i = 0; i < msg.views.length; i++) {
