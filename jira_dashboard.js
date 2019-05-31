@@ -30,7 +30,9 @@ function get_issue_data(jira_data) {
         if (!epics.hasOwnProperty(key)) {
             epics[key] = {
                 start: cumsum,
-                end: cumsum + issue.y
+                end: cumsum + issue.y,
+                epic: issue.Epic,
+                version: issue.Version
             };
         } else {
             epics[key].end = cumsum + issue.y;
@@ -39,13 +41,15 @@ function get_issue_data(jira_data) {
     });
 
     var epic_list = [];
-    for (epic in epics) {
-        if (epics.hasOwnProperty(epic)) {
+    for (key in epics) {
+        if (epics.hasOwnProperty(key)) {
             epic_list.push({
-                epic: epic,
-                start: epics[epic].start,
-                end: epics[epic].end,
-                idx: idx
+                key: key,
+                start: epics[key].start,
+                end: epics[key].end,
+                idx: idx,
+                epic: epics[key].epic,
+                version: epics[key].version
             });
         }
     }
@@ -90,7 +94,10 @@ function analyse_issues(issues) {
     return breakdown;
 }
 
-function plot_jira(target, issues, epic_list, velocity, startDate) {
+function plot_jira(target, jira_data, velocity, startDate) {
+    var backlog, epic_list;
+    [backlog, epic_list] = get_issue_data(jira_data);
+
     if (!velocity) {
         velocity = 30;
     }
@@ -127,11 +134,14 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
         .tickFormat(d3.time.format("%b %d"));
     
     // Clear all plot elements
-    var elements = document.getElementsByClassName('d3-tip');
-    while(elements.length > 0){
-        elements[0].parentNode.removeChild(elements[0]);
+    function clear_plot() {
+        var elements = document.getElementsByClassName('d3-tip');
+        while(elements.length > 0){
+            elements[0].parentNode.removeChild(elements[0]);
+        }
+        document.getElementById(target).innerHTML = "";
     }
-    document.getElementById(target).innerHTML = "";
+    clear_plot();
 
     var svg = d3.select("#" + target).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -148,12 +158,80 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
 
     svg.call(tip);
 
-    plot(issues, epic_list);
+    toDate = function(y) {
+        d = new Date(startDate);
+        return new Date(d.getTime() + y / velocity_per_day * 24 * 60 * 60000);
+    }
+
+    function get_ytransform(el)
+    {
+        if (el.attr("transform") != "")
+        {
+            return parseFloat(el.attr("transform").split(",")[1].replace(/[^\d.]/g, ''));
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    var issue_moves = [];
+
+    var drag_y = undefined;
+    var curr_drag_index = undefined;
+    var drag = d3.behavior.drag()
+        .on("dragstart", dragstarted)
+        .on("drag", dragged)
+        .on("dragend", dragended)
+        .origin(function(d) {return {'y': get_ytransform(d3.select(this))}})
+        
+    function dragstarted(d) {
+        curr_drag_index = backlog.map(function(d){return d[0].Key;}).indexOf(d3.event.sourceEvent.target.__data__.Key);
+        d3.event.sourceEvent.stopPropagation();
+        d3.select(this).selectAll("rect").classed("dragging", true);
+    }
+
+    function dragged(d) {
+        tip.hide();
+        d3.select(this).attr("transform", "translate(0, " + (d3.event.y) + ")");
+        drag_y = d3.event.y;
+    }
+
+    Array.prototype.move = function(from, to) {
+        this.splice(to, 0, this.splice(from, 1)[0]);
+    };
+
+    function dragended(d) {
+      d3.select(this).selectAll("rect").classed("dragging", false);
+      if (curr_drag_index != undefined)
+      {
+          new_index = backlog.map(function (d) {
+                return y(toDate(d[0].y0));
+              }).findIndex(function (d) {return d > drag_y;})
+          if (curr_drag_index != new_index)
+          {
+              //console.log([curr_drag_index, new_index])
+              issue_moves.push([backlog[curr_drag_index][0].Key, backlog[new_index][0].Key])
+              console.log(issue_moves)
+              jira_data.issues.move(curr_drag_index, new_index);
+              [backlog, epic_list] = get_issue_data(jira_data);
+              //console.log(epic_list.map(function(d){return d.end}))
+          }
+          plot(backlog, epic_list);
+          drag_y = undefined;
+          curr_drag_index = undefined
+      }
+    }
+
+    plot(backlog, epic_list);
 
     function plot(data, epic_list) {
+        //svg.selectAll("g").data([]).exit().remove()
+
         var layers = d3.layout.stack()(data);
         var box_marginv = 2;
         var box_marginh = 4;
+        var epic_barwidth = 25;
 
         var versions = [];
         data.map(function(d) {
@@ -171,25 +249,34 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
         });
         epics.sort();
 
+        var epic_order = [];
+        for (var i = 0; i < epic_list.length; i++) {
+            epic_order.push(epic_list[i].key);
+        }
+
         function colors_google(n) {
             var colors_g = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"];
             return colors_g[(n + colors_g.length) % colors_g.length];
-        }
-
-        toDate = function(y) {
-            d = new Date(startDate);
-            d.setDate(d.getDate() + y / velocity_per_day);
-            return d
         }
 
         x.domain(layers[0].map(function(d) {
             return d.x;
         }));
 
-        var layer = svg.selectAll(".layer")
-            .data(layers)
-            .enter().append("g")
-            .attr("class", "layer");
+        layer_base = svg.selectAll(".layer")
+            .data(layers, function(d) { return d[0].Key; });
+
+        var layer = layer_base.enter().append("g")
+            .attr("class", "layer")
+            .attr("transform", function(d) {
+                return "translate(0, " + (y(toDate(d[0].y0))) + ")"
+            })
+            .call(drag);
+
+        layer_base.transition()
+            .attr("transform", function(d) {
+                return "translate(0, " + (y(toDate(d[0].y0))) + ")"
+            });
 
         boxheight = function(d) {
             return d3.max([1, y(toDate(d.y + d.y0)) - y(toDate(d.y0)) - box_marginv * 2]);
@@ -198,36 +285,31 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
         boxes = layer.selectAll("rect")
             .data(function(d) {
                 return d;
-            })
-            .enter();
+            });
 
-        boxes.append("rect")
+        boxes.enter().append("rect")
             .attr("class", "boxes")
-            .attr("x", function(d) {
-                return box_marginh;
-            })
-            .attr("y", function(d) {
-                return y(toDate(d.y0)) + box_marginv;
-            })
+            .attr("x", box_marginh)
+            .attr("y", box_marginv)
             .attr("height", boxheight)
             .attr("width", width)
             .style("fill", function(d, i) {
                 return colors_google(versions.indexOf(d.Version));
             })
             .on('mouseover', function(d) {
-                x = tip.show(d);
-                return x
+                return tip.show(d);
             })
             .on('mouseout', tip.hide);
 
-        boxes.append("text")
+        boxes.transition()
+            .attr("height", boxheight);
+        
+        boxes.enter().append("text")
             .attr("class", "labels")
             .attr("x", function(d) {
                 return d.x + box_marginh * 2 + 10 + 5;
             })
-            .attr("y", function(d) {
-                return y(toDate((d.y + 2 * d.y0) / 2)) + 1;
-            })
+            .attr("y", function(d) { return boxheight(d)/2 + box_marginv; })
             .attr("opacity", function(d) {
                 return (boxheight(d) > 14 ? 1 : 0);
             })
@@ -235,29 +317,39 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
                 return d.Key + ": " + d.Summary + " (" + d.y + ")"
             });
 
-        svg.append("g")
+        boxes.enter().append("rect")
+            .attr("class", "ganttboxes")
+            .attr("x", function(d) {
+                return (box_marginh * 2 + 10 + width) + box_marginh + epic_order.indexOf(d.Epic + " (" + d.Version + ")") * epic_barwidth + 2;
+            })
+            .attr("y", box_marginv)
+            .attr("height", boxheight)
+            .attr("width", epic_barwidth - box_marginh - 4);
+
+        layer_base.select(".ganttboxes").transition()
+            .attr("x", function(d) {
+                return (box_marginh * 2 + 10 + width) + box_marginh + epic_order.indexOf(d[0].Epic + " (" + d[0].Version + ")") * epic_barwidth + 2;
+            });
+        
+        svg.selectAll(".axis").data([0]).enter().append("g")
             .attr("class", "axis axis--y")
             .call(yAxis);
 
-        var epiclayers = svg.append("g")
-            .selectAll("g")
-            .data(epic_list)
-            .enter();
+        var epiclayers_base = svg.selectAll(".epiclayers")
+            .data(epic_list, function(d) {return d.key});
 
-        var epicbarwidth = 25;
+        var epiclayers = epiclayers_base.enter()
+            .append("g")
+            .attr("class", "epiclayers");
+
         epicboxheight = function(d) {
             return d3.max([1, y(toDate(d.end)) - y(toDate(d.start)) - box_marginv * 2]);
-        }
-
-        var ganttkeys = []
-        for (var i = 0; i < epic_list.length; i++) {
-            ganttkeys.push(epic_list[i].epic);
         }
 
         epiclayers.append("rect")
             .attr("class", "epicboxes")
             .attr("x", function(d) {
-                return (box_marginh * 2 + 10 + width) + box_marginh + d.idx * epicbarwidth;
+                return (box_marginh * 2 + 10 + width) + box_marginh + d.idx * epic_barwidth;
             })
             .attr("y", function(d) {
                 return y(toDate(d.start));
@@ -265,40 +357,43 @@ function plot_jira(target, issues, epic_list, velocity, startDate) {
             .attr("height", function(d) {
                 return epicboxheight(d) + box_marginv * 2
             })
-            .attr("width", epicbarwidth - box_marginh)
+            .attr("width", epic_barwidth - box_marginh)
             .style("stroke", '#000')
             .style("fill", '#fff');
+
+        epiclayers_base.select(".epicboxes").transition()
+            .attr("x", function(d) {
+                return (box_marginh * 2 + 10 + width) + box_marginh + d.idx * epic_barwidth;
+            })
+            .attr("y", function(d) {
+                return y(toDate(d.start));
+            })
+            .attr("height", function(d) {
+                return epicboxheight(d) + box_marginv * 2
+            })
 
         epiclayers.append("text")
             .attr("class", "epictext")
             .text(function(d) {
-                return d.epic
+                return d.key
             })
             .attr("transform", function(d) {
-                return "translate(" + ((box_marginh * 2 + 10 + width) + box_marginh + d.idx * epicbarwidth + 6) + "," + (y(toDate(d.start)) + 10) + ")rotate(90)"
+                return "translate(" + ((box_marginh * 2 + 10 + width) + box_marginh + d.idx * epic_barwidth + 6) + "," + (y(toDate(d.start)) + 10) + ")rotate(90)"
             });
 
-        var epic_order = [];
-        for (var i = 0; i < epic_list.length; i++) {
-            epic_order.push(epic_list[i].epic);
-        }
-
-        boxes.append("rect")
-            .attr("class", "ganttboxes")
-            .attr("x", function(d) {
-                return (box_marginh * 2 + 10 + width) + box_marginh + ganttkeys.indexOf(d.Epic + " (" + d.Version + ")") * epicbarwidth + 2;
+        epiclayers_base.select(".epictext").transition()
+            .text(function(d) {
+                return d.key
             })
-            .attr("y", function(d) {
-                return y(toDate(d.y0)) + box_marginv;
-            })
-            .attr("height", boxheight)
-            .attr("width", epicbarwidth - box_marginh - 4);
+            .attr("transform", function(d) {
+                return "translate(" + ((box_marginh * 2 + 10 + width) + box_marginh + d.idx * epic_barwidth + 6) + "," + (y(toDate(d.start)) + 10) + ")rotate(90)"
+            });
 
-
-        var legendlayers = svg.append("g")
-            .selectAll("g")
+        var legendlayers = svg.selectAll(".legendlayers")
             .data(versions)
-            .enter();
+            .enter()
+            .append("g")
+            .attr("class", "legendlayers");
 
         var legend_spacing = 150;
         legendlayers.append("rect")

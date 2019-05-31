@@ -89,3 +89,7 @@ text {
     rx: 2;
     ry: 2;
 }
+
+.dragging {
+  fill-opacity: 0.8;
+}
