@@ -13,7 +13,7 @@ function get_issue_data(jira_data) {
     backlog = jira_data.issues.map(function(issue) {
         return [{
             x: 0,
-            y: issue.fields.customfield_10262 ? issue.fields.customfield_10262 : 10,
+            y: issue.fields.customfield_10262 == null ? issue.fields.customfield_10262 : 10,
             Key: issue.key,
             Summary: issue.fields.summary,
             "Story Points": issue.fields.customfield_10262,
@@ -315,7 +315,7 @@ function plot_jira(target, jira_data, velocity, startDate) {
                 return (boxheight(d) > 14 ? 1 : 0);
             })
             .text(function(d) {
-                return d.Key + ": " + d.Summary + " (" + (d['Story Points'] ? d['Story Points'] : 'unestimated') + ")"
+                return d.Key + ": " + d.Summary + " (" + (d['Story Points'] != null ? d['Story Points'] : 'unestimated') + ")"
             });
 
         boxes.enter().append("rect")
