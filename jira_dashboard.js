@@ -281,7 +281,7 @@ function plot_jira(target, jira_data, velocity, startDate) {
             return d3.max([1, y(toDate(d.y + d.y0)) - y(toDate(d.y0)) - box_marginv * 2]);
         }
 
-        boxes = layer.selectAll("rect")
+        boxes = layer.selectAll(".boxes")
             .data(function(d) {
                 return d;
             });
@@ -296,7 +296,9 @@ function plot_jira(target, jira_data, velocity, startDate) {
                 return colors_google(versions.indexOf(d.Version));
             })
             .on('mouseover', function(d) {
-                return tip.show(d);
+                d2 = d;
+                d['Ends on'] = toDate(d.y + d.y0).toDateString();
+                return tip.show(d2);
             })
             .on('mouseout', tip.hide);
 
