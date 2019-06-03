@@ -13,7 +13,7 @@ function get_issue_data(jira_data) {
     backlog = jira_data.issues.map(function(issue) {
         return [{
             x: 0,
-            y: issue.fields.customfield_10262 == null ? issue.fields.customfield_10262 : 10,
+            y: issue.fields.customfield_10262 != null ? issue.fields.customfield_10262 : 10,
             Key: issue.key,
             Summary: issue.fields.summary,
             "Story Points": issue.fields.customfield_10262,
