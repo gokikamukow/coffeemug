@@ -106,7 +106,6 @@ function plot_jira(target, jira_data, velocity, startDate) {
         startDate.setDate(startDate.getDate() + 7);
     }
     var velocity_per_day = velocity / 7;
-    var parseDate = d3.time.format("%m/%Y").parse;
 
     var margin = {
             top: 20,
@@ -314,7 +313,7 @@ function plot_jira(target, jira_data, velocity, startDate) {
                 return (boxheight(d) > 14 ? 1 : 0);
             })
             .text(function(d) {
-                return d.Key + ": " + d.Summary + " (" + d.y + ")"
+                return d.Key + ": " + d.Summary + " (" + (d['Story Points'] ? d['Story Points'] : 'unestimated') + ")"
             });
 
         boxes.enter().append("rect")
@@ -325,6 +324,20 @@ function plot_jira(target, jira_data, velocity, startDate) {
             .attr("y", box_marginv)
             .attr("height", boxheight)
             .attr("width", epic_barwidth - box_marginh - 4);
+
+        boxes.enter().append("path")
+            .attr("class", "milestones")
+            .attr("opacity", function(d) {
+                return (d.Summary.toLowerCase().startsWith('milestone:') ? 1 : 0);
+            })
+            .attr("d", d3.svg.symbol().type("diamond"))
+            .attr("transform", function(d) {
+                return "translate(0, " + (boxheight(d)/2) + ")"
+            })
+            .on('mouseover', function(d) {
+                return tip.show({'Date': toDate(d.y + d.y0).toDateString()});
+            })
+            .on('mouseout', tip.hide);
 
         layer_base.select(".ganttboxes").transition()
             .attr("x", function(d) {
