@@ -187,13 +187,29 @@ function plot_jira(target, jira_data, velocity, startDate) {
     function dragstarted(d) {
         curr_drag_index = backlog.map(function(d){return d[0].Key;}).indexOf(d3.event.sourceEvent.target.__data__.Key);
         d3.event.sourceEvent.stopPropagation();
+        d3.select(this).classed("dragging", true);
         d3.select(this).selectAll("rect").classed("dragging", true);
     }
 
     function dragged(d) {
         tip.hide();
-        d3.select(this).attr("transform", "translate(0, " + (d3.event.y) + ")");
         drag_y = d3.event.y;
+        if (curr_drag_index != undefined)
+        {
+            new_index = backlog.map(function (d) {
+                  return y(toDate(d[0].y0 + d[0].y/2));
+                }).findIndex(function (d) {return d > drag_y;})
+            if (curr_drag_index != new_index)
+            {
+                issue_moves.push([backlog[curr_drag_index][0].Key, backlog[new_index][0].Key])
+                console.log(issue_moves)
+                jira_data.issues.move(curr_drag_index, new_index);
+                [backlog, epic_list] = get_issue_data(jira_data);
+                curr_drag_index = new_index;
+                plot(backlog, epic_list);
+            }
+        }
+        d3.select(this).attr("transform", "translate(0, " + (d3.event.y) + ")");
     }
 
     Array.prototype.move = function(from, to) {
@@ -201,25 +217,11 @@ function plot_jira(target, jira_data, velocity, startDate) {
     };
 
     function dragended(d) {
-      d3.select(this).selectAll("rect").classed("dragging", false);
-      if (curr_drag_index != undefined)
-      {
-          new_index = backlog.map(function (d) {
-                return y(toDate(d[0].y0));
-              }).findIndex(function (d) {return d > drag_y;})
-          if (curr_drag_index != new_index)
-          {
-              //console.log([curr_drag_index, new_index])
-              issue_moves.push([backlog[curr_drag_index][0].Key, backlog[new_index][0].Key])
-              console.log(issue_moves)
-              jira_data.issues.move(curr_drag_index, new_index);
-              [backlog, epic_list] = get_issue_data(jira_data);
-              //console.log(epic_list.map(function(d){return d.end}))
-          }
-          plot(backlog, epic_list);
-          drag_y = undefined;
-          curr_drag_index = undefined
-      }
+        d3.select(this).classed("dragging", false);
+        d3.select(this).selectAll("rect").classed("dragging", false);
+        plot(backlog, epic_list);
+        drag_y = undefined;
+        curr_drag_index = undefined
     }
 
     plot(backlog, epic_list);
@@ -267,9 +269,15 @@ function plot_jira(target, jira_data, velocity, startDate) {
 
         layer = layer_base.enter().append("g")
             .attr("class", "layer")
+            .attr("transform", function(d) {
+                return "translate(0, " + (y(toDate(d.y0))) + ")"
+            })
             .call(drag);
 
-        layer_base.transition()
+        layer_base
+            /* Don't transition items being dragged */
+            .select(function (d,i) {return d3.select(this).classed("dragging") ? null : this;})
+            .transition()
             .attr("transform", function(d) {
                 return "translate(0, " + (y(toDate(d.y0))) + ")"
             });
@@ -306,7 +314,6 @@ function plot_jira(target, jira_data, velocity, startDate) {
                 .attr("width", width)
                 .style("fill", colors_google(versions.indexOf(d.Version)))
                 .on('mouseover', function(d) {
-                    console.log(d.y + d.y0);
                     d2 = d;
                     d['Ends on'] = toDate(d.y + d.y0).toDateString();
                     return tip.show(d2);
