@@ -48,13 +48,13 @@ text {
   display: none;
 }
 
-.labels {
+.storylabel {
    font: 12px sans-serif;
    fill: #000000;
    alignment-baseline: middle;
 }
 
-.boxes {
+.storybox {
     stroke: #000000;
     rx: 2;
     ry: 2;

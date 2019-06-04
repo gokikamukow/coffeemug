@@ -227,7 +227,7 @@ function plot_jira(target, jira_data, velocity, startDate) {
     function plot(data, epic_list) {
         //svg.selectAll("g").data([]).exit().remove()
 
-        var layers = d3.layout.stack()(data);
+        var layers = d3.layout.stack()(data).map(function (d) {return d[0]});
         var box_marginv = 2;
         var box_marginh = 4;
         var epic_barwidth = 25;
@@ -258,94 +258,94 @@ function plot_jira(target, jira_data, velocity, startDate) {
             return colors_g[(n + colors_g.length) % colors_g.length];
         }
 
-        x.domain(layers[0].map(function(d) {
+        x.domain(layers.map(function(d) {
             return d.x;
         }));
 
         layer_base = svg.selectAll(".layer")
-            .data(layers, function(d) { return d[0].Key; });
+            .data(layers, function(d) { return d.Key; });
 
-        var layer = layer_base.enter().append("g")
+        layer = layer_base.enter().append("g")
             .attr("class", "layer")
-            .attr("transform", function(d) {
-                return "translate(0, " + (y(toDate(d[0].y0))) + ")"
-            })
             .call(drag);
 
         layer_base.transition()
             .attr("transform", function(d) {
-                return "translate(0, " + (y(toDate(d[0].y0))) + ")"
+                return "translate(0, " + (y(toDate(d.y0))) + ")"
             });
 
         boxheight = function(d) {
             return d3.max([1, y(toDate(d.y + d.y0)) - y(toDate(d.y0)) - box_marginv * 2]);
         }
 
-        boxes = layer.selectAll(".boxes")
-            .data(function(d) {
-                return d;
-            });
+        function addRow(d, i) {
+            d3.select(this)
+                .append("rect")
+                .attr("class", "storybox");
 
-        boxes.enter().append("rect")
-            .attr("class", "boxes")
-            .attr("x", box_marginh)
-            .attr("y", box_marginv)
-            .attr("height", boxheight)
-            .attr("width", width)
-            .style("fill", function(d, i) {
-                return colors_google(versions.indexOf(d.Version));
-            })
-            .on('mouseover', function(d) {
-                d2 = d;
-                d['Ends on'] = toDate(d.y + d.y0).toDateString();
-                return tip.show(d2);
-            })
-            .on('mouseout', tip.hide);
+            d3.select(this)
+                .append("text")
+                .attr("class", "storylabel");;
 
-        boxes.transition()
-            .attr("height", boxheight);
-        
-        boxes.enter().append("text")
-            .attr("class", "labels")
-            .attr("x", function(d) {
-                return d.x + box_marginh * 2 + 10 + 5;
-            })
-            .attr("y", function(d) { return boxheight(d)/2 + box_marginv; })
-            .attr("opacity", function(d) {
-                return (boxheight(d) > 14 ? 1 : 0);
-            })
-            .text(function(d) {
-                return d.Key + ": " + d.Summary + " (" + (d['Story Points'] != null ? d['Story Points'] : 'unestimated') + ")"
-            });
+            d3.select(this)
+                .append("rect")
+                .attr("class", "ganttboxes");
+            
+            d3.select(this)
+                .append("path")
+                .attr("class", "milestones");
+        }
 
-        boxes.enter().append("rect")
-            .attr("class", "ganttboxes")
-            .attr("x", function(d) {
-                return (box_marginh * 2 + 10 + width) + box_marginh + epic_order.indexOf(d.Epic + " (" + d.Version + ")") * epic_barwidth + 2;
-            })
-            .attr("y", box_marginv)
-            .attr("height", boxheight)
-            .attr("width", epic_barwidth - box_marginh - 4);
+        function updateRow(d, i) {
+            d3.select(this)
+                .selectAll(".storybox")
+                .datum(d)
+                .attr("x", box_marginh)
+                .attr("y", box_marginv)
+                .attr("height", boxheight(d))
+                .attr("width", width)
+                .style("fill", colors_google(versions.indexOf(d.Version)))
+                .on('mouseover', function(d) {
+                    console.log(d.y + d.y0);
+                    d2 = d;
+                    d['Ends on'] = toDate(d.y + d.y0).toDateString();
+                    return tip.show(d2);
+                })
+                .on('mouseout', tip.hide);
 
-        boxes.enter().append("path")
-            .attr("class", "milestones")
-            .attr("opacity", function(d) {
-                return (d.Summary.toLowerCase().startsWith('milestone:') ? 1 : 0);
-            })
-            .attr("d", d3.svg.symbol().type("diamond"))
-            .attr("transform", function(d) {
-                return "translate(0, " + (boxheight(d)/2) + ")"
-            })
-            .on('mouseover', function(d) {
-                return tip.show({'Date': toDate(d.y + d.y0).toDateString()});
-            })
-            .on('mouseout', tip.hide);
+            d3.select(this)
+                .selectAll(".storylabel")
+                .datum(d)
+                .attr("x", d.x + box_marginh * 2 + 10 + 5)
+                .attr("y", boxheight(d)/2 + box_marginv)
+                .attr("opacity", boxheight(d) > 14 ? 1 : 0)
+                .text(d.Key + ": " + d.Summary + " (" + (d['Story Points'] != null ? d['Story Points'] : 'unestimated') + ")");
 
-        layer_base.select(".ganttboxes").transition()
-            .attr("x", function(d) {
-                return (box_marginh * 2 + 10 + width) + box_marginh + epic_order.indexOf(d[0].Epic + " (" + d[0].Version + ")") * epic_barwidth + 2;
-            });
-        
+            d3.select(this)
+                .selectAll(".ganttboxes")
+                .datum(d)
+                .attr("x", function(d) {
+                    return (box_marginh * 2 + 10 + width) + box_marginh + epic_order.indexOf(d.Epic + " (" + d.Version + ")") * epic_barwidth + 2
+                })
+                .attr("y", box_marginv)
+                .attr("height", boxheight)
+                .attr("width", epic_barwidth - box_marginh - 4);
+            
+            d3.select(this)
+                .selectAll(".milestones")
+                .datum(d)
+                .attr("opacity", d.Summary.toLowerCase().startsWith('milestone:') ? 1 : 0)
+                .attr("d", d3.svg.symbol().type("diamond"))
+                .attr("transform", "translate(0, " + (boxheight(d)/2) + ")")
+                .on('mouseover', function (d) {
+                    tip.show({'Date': toDate(d.y + d.y0).toDateString()})
+                })
+                .on('mouseout', tip.hide);
+        }
+
+        layer.each(addRow)
+        layer_base.each(updateRow)
+
         svg.selectAll(".axis").data([0]).enter().append("g")
             .attr("class", "axis axis--y")
             .call(yAxis);
