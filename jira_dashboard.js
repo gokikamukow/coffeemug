@@ -175,6 +175,7 @@ function plot_jira(target, jira_data, velocity, startDate) {
     }
 
     var issue_moves = [];
+    var above_issue;
 
     var drag_y = undefined;
     var curr_drag_index = undefined;
@@ -201,10 +202,10 @@ function plot_jira(target, jira_data, velocity, startDate) {
                 }).findIndex(function (d) {return d > drag_y;})
             if (curr_drag_index != new_index)
             {
-                issue_moves.push([backlog[curr_drag_index][0].Key, backlog[new_index][0].Key])
-                console.log(issue_moves)
                 jira_data.issues.move(curr_drag_index, new_index);
                 [backlog, epic_list] = get_issue_data(jira_data);
+                above_issue = backlog[new_index + 1][0].Key;
+                new_jira_data = backlog;
                 curr_drag_index = new_index;
                 plot(backlog, epic_list);
             }
@@ -219,9 +220,15 @@ function plot_jira(target, jira_data, velocity, startDate) {
     function dragended(d) {
         d3.select(this).classed("dragging", false);
         d3.select(this).selectAll("rect").classed("dragging", false);
+        if (above_issue != undefined)
+        {
+            issue_moves.push([backlog[curr_drag_index][0].Key, above_issue]);
+            console.log(issue_moves)
+        }
         plot(backlog, epic_list);
         drag_y = undefined;
         curr_drag_index = undefined
+        above_issue = undefined;
     }
 
     plot(backlog, epic_list);
