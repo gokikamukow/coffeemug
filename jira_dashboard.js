@@ -223,6 +223,7 @@ function plot_jira(target, jira_data, velocity, startDate) {
         if (above_issue != undefined)
         {
             issue_moves.push([backlog[curr_drag_index][0].Key, above_issue]);
+            jira_data.moves = issue_moves;
             console.log(issue_moves)
         }
         plot(backlog, epic_list);

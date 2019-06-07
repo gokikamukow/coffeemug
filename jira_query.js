@@ -113,3 +113,14 @@ function get_jira_info(startAt, board_name, jql, restrict_fields, on_update) {
         });
     });
 }
+
+function jira_moves_to_clipboard(moves) {
+    const el = document.createElement('textarea');
+    el.value = JSON.stringify(moves);
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+}
+
+bookmarklet = String.raw`javascript: function do_moves(moves) {AJS.$.ajax({data: JSON.stringify({'issues': [moves[0][1]], 'rankBeforeIssue': moves[0][0], "rankCustomFieldId":10926}), url: 'https://jira.dolby.net/jira/rest/agile/1.0/issue/rank', type: "PUT", async: true, datatype: 'json', contentType: 'application/json'}).done(function() {data = JSON.parse(this.data); console.log('Succeeded in moving ' + data.issues[0] + ' before ' + data.rankBeforeIssue); if (moves.length > 1) {do_moves(moves.slice(1))}}).fail(function() {console.log('Failed in ')}).fail(function() {console.log(this)})}; var reply = window.prompt("Paste your issue moves here: "); moves = JSON.parse(reply); if ((moves != null) && (moves != undefined) && (moves.length > 0) && (moves.map(function (move) {return move.length == 2;})).reduce(function(a, b) {return a && b;})) {do_moves(moves)} else {alert("Invalid move syntax, must be [[issueToMove, aboveThisIssue], ...]")};`
