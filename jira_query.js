@@ -86,27 +86,30 @@ function get_jira_info(startAt, board_name, jql, restrict_fields, on_update) {
                             break;
                         }
                     }
+                    jira_call(jira_url + "/rest/agile/1.0/board/" + jira.board.id + "/configuration", function(msg) {
+                        jira.board.config = msg;
 
-                    console.log("Board ID is " + jira.board);
+                        console.log("Board ID is " + jira.board);
 
-                    var prefix = "?"
-                    var query_url = jira_url + "/rest/agile/1.0/board/" + jira.board.id + "/backlog"
-                    if (jql != undefined)
-                    {
-                        query_url = query_url + prefix + "jql=" + encodeURIComponent(jql);
-                        prefix = "&";
-                    }
-                    if (restrict_fields != undefined)
-                    {
-                        
-                        query_url = query_url + prefix + "fields=" + restrict_fields.join(",");
-                        prefix = "&";
-                    }
-                    jira_get_all(query_url, "issues", function (messages, issues) {
-                        jira.issues = issues;
-                        jira.messages = messages;
-                        console.log(jira);
-                        on_update(jira);
+                        var prefix = "?"
+                        var query_url = jira_url + "/rest/agile/1.0/board/" + jira.board.id + "/backlog"
+                        if (jql != undefined)
+                        {
+                            query_url = query_url + prefix + "jql=" + encodeURIComponent(jql);
+                            prefix = "&";
+                        }
+                        if (restrict_fields != undefined)
+                        {
+                            
+                            query_url = query_url + prefix + "fields=" + restrict_fields.join(",");
+                            prefix = "&";
+                        }
+                        jira_get_all(query_url, "issues", function (messages, issues) {
+                            jira.issues = issues;
+                            jira.messages = messages;
+                            console.log(jira);
+                            on_update(jira);
+                        });
                     });
                 });
             }
