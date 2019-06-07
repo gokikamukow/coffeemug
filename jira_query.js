@@ -119,7 +119,7 @@ function get_jira_info(startAt, board_name, jql, restrict_fields, on_update) {
 
 function jira_moves_to_clipboard(rankCustomFieldId, moves) {
     const el = document.createElement('textarea');
-    el.value = JSON.stringify(rankCustomFieldId.concat(moves));
+    el.value = JSON.stringify([rankCustomFieldId].concat(moves));
     document.body.appendChild(el);
     el.select();
     document.execCommand('copy');
